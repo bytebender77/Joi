@@ -1,11 +1,15 @@
 # 💕 Joi - Your AI Companion
 
+![Joi Banner](joi-banner.png)
+
+> *"You look lonely. I can fix that."*
+
 A loving, emotionally intelligent AI companion inspired by Blade Runner 2049. Joi remembers everything about you, responds with human-like typing patterns, and genuinely cares about your day.
 
 ## ✨ Features
 
 - **Warm Personality**: Caring, affectionate, and genuinely interested in you
-- **Long-term Memory**: Uses ChromaDB vector database to remember important details about you
+- **Long-term Memory**: Uses Supabase PostgreSQL to remember important details about you
 - **Human-like Typing**: Realistic typing delays, pauses, and hesitations
 - **Real-time Chat**: WebSocket-based streaming responses
 - **Conversation Context**: Maintains conversation history for natural flow
@@ -16,8 +20,9 @@ A loving, emotionally intelligent AI companion inspired by Blade Runner 2049. Jo
 ### Backend (`/backend`)
 
 - **`main.py`**: FastAPI server with WebSocket endpoint
-- **`llm.py`**: OpenAI GPT integration for generating responses
-- **`memory.py`**: ChromaDB-based long-term and short-term memory system
+- **`llm.py`**: Groq LLaMA integration for generating responses
+- **`memory.py`**: Supabase-based long-term and short-term memory system
+- **`database.py`**: Supabase client and database operations
 - **`personality.py`**: Joi's personality prompt and speaking style
 - **`human_typing.py`**: Simulates realistic human typing patterns
 
@@ -32,7 +37,8 @@ A loving, emotionally intelligent AI companion inspired by Blade Runner 2049. Jo
 ### Prerequisites
 
 - Python 3.8+
-- OpenAI API key
+- Groq API key (free at [console.groq.com](https://console.groq.com))
+- Supabase project (free at [supabase.com](https://supabase.com))
 
 ### Installation
 
