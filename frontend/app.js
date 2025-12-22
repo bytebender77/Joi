@@ -19,13 +19,11 @@ class JoiChat {
     }
 
     init() {
-        // Check for saved username (auto-login)
-        const savedUsername = localStorage.getItem('joi_username');
-        if (savedUsername) {
-            this.username = savedUsername;
-            this.connect();
-            return;
-        }
+        // Always set up chat handlers
+        this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.sendMessage();
+        });
 
         // Login handlers
         this.startChatBtn.addEventListener('click', () => this.handleLogin());
@@ -33,11 +31,12 @@ class JoiChat {
             if (e.key === 'Enter') this.handleLogin();
         });
 
-        // Chat handlers
-        this.sendBtn.addEventListener('click', () => this.sendMessage());
-        this.input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.sendMessage();
-        });
+        // Check for saved username (auto-login)
+        const savedUsername = localStorage.getItem('joi_username');
+        if (savedUsername) {
+            this.username = savedUsername;
+            this.connect();
+        }
     }
 
     handleLogin() {
