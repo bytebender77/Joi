@@ -77,9 +77,11 @@ class JoiChat {
             return;
         }
 
+        console.log('Connecting to:', wsUrl);
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
+            console.log('WebSocket connected');
             this.status.textContent = 'online';
             // Send login message immediately after connecting
             this.ws.send(JSON.stringify({
@@ -91,7 +93,8 @@ class JoiChat {
             this.loginOverlay.style.display = 'none';
         };
 
-        this.ws.onclose = () => {
+        this.ws.onclose = (event) => {
+            console.log('WebSocket closed:', event.code, event.reason);
             this.status.textContent = 'offline';
             // Don't show overlay on disconnect if we have saved username
             // Just try to reconnect
@@ -100,6 +103,10 @@ class JoiChat {
             } else {
                 this.loginOverlay.style.display = 'flex';
             }
+        };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
         };
 
         this.ws.onmessage = (event) => {
@@ -157,7 +164,14 @@ class JoiChat {
 
     sendMessage() {
         const text = this.input.value.trim();
-        if (!text || !this.ws) return;
+        if (!text) return;
+
+        // Check WebSocket connection
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket not connected');
+            alert('Not connected to server. Please wait or refresh.');
+            return;
+        }
 
         // Add user message to chat
         const userMsg = document.createElement('div');
