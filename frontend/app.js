@@ -119,6 +119,32 @@ class JoiChat {
         this.username = null;
     }
 
+    async waitForServer(httpUrl, maxAttempts = 12) {
+        // Poll health endpoint every 5 seconds for up to 60 seconds
+        for (let i = 0; i < maxAttempts; i++) {
+            this.updateConnectingMessage(`Waiting for server... (${(i + 1) * 5}s)`);
+
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            try {
+                const response = await fetch(`${httpUrl}/health`, {
+                    method: 'GET',
+                    mode: 'cors',
+                });
+
+                if (response.ok) {
+                    console.log('Server is now awake!');
+                    return true;
+                }
+            } catch (error) {
+                console.log(`Health check attempt ${i + 1} failed`);
+            }
+        }
+
+        console.log('Server failed to wake up after max attempts');
+        return false;
+    }
+
     logout() {
         localStorage.removeItem('joi_username');
         this.username = null;
@@ -130,23 +156,52 @@ class JoiChat {
         this.usernameInput.value = '';
     }
 
-    connect() {
+    async connect() {
         let wsUrl;
+        let httpUrl;
 
         // Check for production config
         if (window.JOI_CONFIG && window.JOI_CONFIG.BACKEND_URL && !window.JOI_CONFIG.BACKEND_URL.includes('your-backend')) {
             wsUrl = `${window.JOI_CONFIG.BACKEND_URL}/ws`;
+            // Convert wss:// to https:// for health check
+            httpUrl = window.JOI_CONFIG.BACKEND_URL.replace('wss://', 'https://').replace('ws://', 'http://');
         } else if (window.location.protocol === 'file:') {
             wsUrl = 'ws://localhost:8000/ws';
+            httpUrl = 'http://localhost:8000';
         } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             wsUrl = `ws://${window.location.host}/ws`;
+            httpUrl = `http://${window.location.host}`;
         } else {
             console.error('Please configure BACKEND_URL in config.js');
             alert('Backend URL not configured. Please update config.js');
             return;
         }
 
-        console.log('Connecting to:', wsUrl);
+        console.log('Waking up server:', httpUrl);
+        this.updateConnectingMessage('Waking up server...');
+
+        // First, wake up the server with an HTTP health check
+        try {
+            const healthResponse = await fetch(`${httpUrl}/health`, {
+                method: 'GET',
+                mode: 'cors',
+            });
+
+            if (healthResponse.ok) {
+                console.log('Server is awake!');
+                this.updateConnectingMessage('Server ready, connecting...');
+            }
+        } catch (error) {
+            console.log('Health check failed, server may still be waking up:', error.message);
+            this.updateConnectingMessage('Server is starting up...');
+
+            // Wait and retry health check
+            await this.waitForServer(httpUrl);
+        }
+
+        // Now connect via WebSocket
+        console.log('Connecting WebSocket to:', wsUrl);
+        this.updateConnectingMessage('Establishing connection...');
 
         try {
             this.ws = new WebSocket(wsUrl);

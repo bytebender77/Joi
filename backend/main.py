@@ -19,6 +19,11 @@ app = FastAPI()
 joi_llm = JoiLLM()
 human_typer = HumanTyper()
 
+# Health check endpoint for waking up the server
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 # Serve frontend
 app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 
