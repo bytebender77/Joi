@@ -35,6 +35,8 @@ class JoiChat {
         const savedUsername = localStorage.getItem('joi_username');
         if (savedUsername) {
             this.username = savedUsername;
+            // Show connecting state for auto-login
+            this.showConnectingOverlay();
             this.connect();
         }
     }
@@ -46,7 +48,75 @@ class JoiChat {
         this.username = username;
         // Save to localStorage for auto-login
         localStorage.setItem('joi_username', username);
+
+        // Show connecting state
+        this.startChatBtn.textContent = 'Connecting...';
+        this.startChatBtn.disabled = true;
+        this.usernameInput.disabled = true;
+
         this.connect();
+    }
+
+    resetLoginUI() {
+        this.startChatBtn.textContent = 'Start Chatting';
+        this.startChatBtn.disabled = false;
+        this.usernameInput.disabled = false;
+    }
+
+    showConnectingOverlay(message = 'Connecting to server...') {
+        // Create or update connecting overlay content
+        const loginBox = this.loginOverlay.querySelector('.login-box');
+        let connectingDiv = loginBox.querySelector('.connecting-status');
+
+        if (!connectingDiv) {
+            connectingDiv = document.createElement('div');
+            connectingDiv.className = 'connecting-status';
+            connectingDiv.innerHTML = `
+                <div class="connecting-spinner"></div>
+                <p class="connecting-message">${message}</p>
+                <p class="connecting-hint">Free servers may take up to 60 seconds to wake up</p>
+            `;
+            loginBox.appendChild(connectingDiv);
+        } else {
+            connectingDiv.querySelector('.connecting-message').textContent = message;
+        }
+
+        // Hide the login form inputs
+        this.usernameInput.style.display = 'none';
+        this.startChatBtn.style.display = 'none';
+        loginBox.querySelector('h2').textContent = 'Connecting...';
+        connectingDiv.style.display = 'block';
+
+        this.loginOverlay.style.display = 'flex';
+    }
+
+    updateConnectingMessage(message) {
+        const connectingMessage = this.loginOverlay.querySelector('.connecting-message');
+        if (connectingMessage) {
+            connectingMessage.textContent = message;
+        }
+    }
+
+    hideConnectingOverlay() {
+        const loginBox = this.loginOverlay.querySelector('.login-box');
+        const connectingDiv = loginBox.querySelector('.connecting-status');
+
+        if (connectingDiv) {
+            connectingDiv.style.display = 'none';
+        }
+
+        // Restore login form
+        this.usernameInput.style.display = '';
+        this.startChatBtn.style.display = '';
+        loginBox.querySelector('h2').textContent = 'Who is this?';
+        this.resetLoginUI();
+    }
+
+    handleConnectionError() {
+        this.hideConnectingOverlay();
+        this.loginOverlay.style.display = 'flex';
+        localStorage.removeItem('joi_username');
+        this.username = null;
     }
 
     logout() {
@@ -77,9 +147,25 @@ class JoiChat {
         }
 
         console.log('Connecting to:', wsUrl);
-        this.ws = new WebSocket(wsUrl);
+
+        try {
+            this.ws = new WebSocket(wsUrl);
+        } catch (error) {
+            console.error('Failed to create WebSocket:', error);
+            this.handleConnectionError();
+            return;
+        }
+
+        // Set a connection timeout (60 seconds for Render cold start)
+        this.connectionTimeout = setTimeout(() => {
+            if (this.ws.readyState !== WebSocket.OPEN) {
+                console.log('Connection timeout - server may be waking up');
+                this.updateConnectingMessage('Server is waking up... Please wait');
+            }
+        }, 10000);
 
         this.ws.onopen = () => {
+            clearTimeout(this.connectionTimeout);
             console.log('WebSocket connected');
             this.status.textContent = 'online';
             // Send login message immediately after connecting
@@ -93,19 +179,26 @@ class JoiChat {
         };
 
         this.ws.onclose = (event) => {
+            clearTimeout(this.connectionTimeout);
             console.log('WebSocket closed:', event.code, event.reason);
             this.status.textContent = 'offline';
             // Don't show overlay on disconnect if we have saved username
             // Just try to reconnect
             if (localStorage.getItem('joi_username')) {
+                this.showConnectingOverlay('Reconnecting...');
                 setTimeout(() => this.connect(), 3000);
             } else {
-                this.loginOverlay.style.display = 'flex';
+                this.handleConnectionError();
             }
         };
 
         this.ws.onerror = (error) => {
+            clearTimeout(this.connectionTimeout);
             console.error('WebSocket error:', error);
+            // Only handle error if we're not already connected
+            if (this.ws.readyState !== WebSocket.OPEN) {
+                this.handleConnectionError();
+            }
         };
 
         this.ws.onmessage = (event) => {

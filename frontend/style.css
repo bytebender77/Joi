@@ -418,3 +418,42 @@ body {
 .login-box button:hover {
     background: #008f6f;
 }
+
+.login-box button:disabled {
+    background: #5a6a71;
+    cursor: not-allowed;
+}
+
+/* Connecting Status Styles */
+.connecting-status {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.connecting-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(0, 168, 132, 0.2);
+    border-top-color: #00a884;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.connecting-message {
+    color: #e9edef;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.connecting-hint {
+    color: #8696a0;
+    font-size: 0.85rem;
+    font-style: italic;
+}
